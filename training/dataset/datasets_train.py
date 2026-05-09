@@ -46,7 +46,7 @@ class ImageDataset_Train(Dataset):
             if self.name == 'celebdf':
                 intersec_label = np.array(self.img_path_label.iloc[idx, 5])
 
-        return {'image': img, 'label': label, 'intersec_label': intersec_label}
+        return {'image': img, 'label': label, 'intersec_label': intersec_label, 'image_path': img_path}
 
 
 class ImageDataset_Test(Dataset):
@@ -216,10 +216,13 @@ class ImageDataset_Test(Dataset):
 
         img = Image.open(path)
         label = self.label[index % len(self.label)]
+
         img = self.transform(img)
+
         data_dict = {}
         data_dict['image'] = img
         data_dict['label'] = label
+        data_dict['image_path'] = path
 
         return data_dict
 

@@ -43,9 +43,12 @@ if __name__ == '__main__':
     if cuda:
         model.cuda()
 
-    ckpt = torch.load(opt.checkpoints, map_location=torch.device('cuda'))
-    model.load_state_dict(ckpt, strict=True)
-    print('loading from: ', opt.checkpoints)
+    if os.path.exists(opt.checkpoints):
+        ckpt = torch.load(opt.checkpoints, map_location=device)
+        model.load_state_dict(ckpt, strict=False)
+        print('loading from: ', opt.checkpoints)
+    else:
+        print('No trained checkpoint found. Using pretrained backbone only.')
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.Tensor
 
@@ -105,6 +108,20 @@ if __name__ == '__main__':
                 output = model(data_dict, inference=True)
                 pred = output['cls_fused'][:, 1]
                 pred = pred.cpu().data.numpy().tolist()
+                
+                for idx, score in enumerate(pred):
+
+                    predicted_class = "Fake" if score > 0.5 else "Real"
+
+                    actual_label = label[idx].item()
+                    actual_class = "Fake" if actual_label == 1 else "Real"
+
+                    print("\n========================")
+                    print(f"Image: {data_dict['image_path'][idx]}")
+                    print(f"Ground Truth: {actual_class}")
+                    print(f"Fake Confidence: {score:.4f}")
+                    print(f"Predicted Class: {predicted_class}")
+                    print("========================")
 
                 simp_label = label
                 pred_list += pred
@@ -116,9 +133,12 @@ if __name__ == '__main__':
         label_list = np.array(label_list)
         pred_list = np.array(pred_list)
 
-        savepath = opt.savepath + '/' + eachatt
-        np.save(savepath+'labels.npy', label_list)
-        np.save(savepath+'predictions.npy', pred_list)
+        savepath = os.path.join(opt.savepath, eachatt.replace(',', '_'))
+
+        os.makedirs(savepath, exist_ok=True)
+
+        np.save(os.path.join(savepath, 'labels.npy'), label_list)
+        np.save(os.path.join(savepath, 'predictions.npy'), pred_list)
 
 
     print()

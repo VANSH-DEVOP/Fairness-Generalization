@@ -15,7 +15,8 @@ class LDAMLoss(AbstractLossClass):
         super().__init__()
         m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
         m_list = m_list * (max_m / np.max(m_list))
-        m_list = torch.cuda.FloatTensor(m_list)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        m_list = torch.FloatTensor(m_list).to(device)
         self.m_list = m_list
         assert s > 0
         self.s = s
