@@ -1,137 +1,236 @@
 # Preserving Fairness Generalization in Deepfake Detection
 
-Li Lin, Xinan He, Yan Ju, Xin Wang, Feng Ding, and Shu Hu
-_________________
+## Overview
 
-This repository is the official implementation of our paper "Preserving Fairness Generalization in Deepfake Detection", which has been accepted by **CVPR 2024**. 
+This project is based on the CVPR 2024 research paper:
 
-## 1. Installation
-You can run the following script to configure the necessary environment:
+**“Preserving Fairness Generalization in Deepfake Detection”**
 
-```
-cd Fairness-Generalization
-conda create -n FairnessDeepfake python=3.9.0
-conda activate FairnessDeepfake
-pip install -r requirements.txt
-```
+The objective of the paper is to improve fairness in deepfake detection systems by reducing demographic bias while maintaining strong detection performance.
 
-## 2. Dataset Preparation
+Traditional deepfake detectors often become biased toward dominant demographic groups present in training datasets. This project studies and reproduces the fairness-aware deepfake detection framework proposed in the paper.
 
-We share the FF++, Celeb-DF, DFD, DFDC with demographic annotations from [paper](https://arxiv.org/pdf/2208.05845.pdf),  which be downloaded through this [link](https://purdue0-my.sharepoint.com/:f:/g/personal/lin1785_purdue_edu/EtMK0nfxMldAikDxesIo6ckBVHMME1iIV1id_ZsbM9hsqg?e=WayYoy). 
+---
 
-You can also get those re-annotated four datasets with prediction uncertainty scores through our [AI-Face-FairnessBench](https://github.com/Purdue-M2/AI-Face-FairnessBench). 
+# Research Objective
 
-Or you can download these datasets from their official website and process them by following the below steps:
-- Download [FF++](https://github.com/ondyari/FaceForensics), [Celeb-DF](https://github.com/yuezunli/celeb-deepfakeforensics), [DFD](https://ai.googleblog.com/2019/09/contributing-data-to-deepfake-detection.html) and [DFDC](https://ai.facebook.com/datasets/dfdc/) datasets
-- Download annotations for these four datasets according to [paper](https://arxiv.org/pdf/2208.05845.pdf) and their [code](https://github.com/pterhoer/DeepFakeAnnotations), extract the demographics information of all images in each dataset. 
-- Extract, align and crop face using [DLib](https://www.jmlr.org/papers/volume10/king09a/king09a.pdf), and save them to `/path/to/cropped_images/`
-- Split cropped images in each dataset to train/val/test with a ratio of 60%/20%/20% without identity overlap.
-- Generate faketrain.csv, realtrain.csv, fakeval.csv, realval.csv according to the following format:
-  
-		|- faketrain.csv
-			|_ img_path,label,ismale,isasian,iswhite,isblack,intersec_label,spe_label
-				/path/to/cropped_images/imgxx.png, 1(fake), 1(male)/-1(not male), 1(asian)/-1(not asian), 1(black)/-1(not black), 1(white)/-1(not white), 0(male-asian)/1(male-white)/2(male-black)/3(male-others)/4(female-asian)/5(female-white)/6(female-black)/7(female-others), 1(Deepfakes)/2(Face2Face)/3(FaceSwap)/4(NeuralTextures)/5(FaceShifter)
-				...
+The main goal of this project is to:
 
-		|- realtrain.csv
-			|_ img_path,label,ismale,isasian,iswhite,isblack,intersec_label
-				/path/to/cropped_images/imgxx.png, 0(real), 1(male)/-1(not male), 1(asian)/-1(not asian), 1(black)/-1(not black), 1(white)/-1(not white), 0(male-asian)/1(male-white)/2(male-black)/3(male-others)/4(female-asian)/5(female-white)/6(female-black)/7(female-others)
-				...
+- Understand fairness-aware deepfake detection
+- Reproduce the research implementation
+- Execute the inference pipeline successfully
+- Adapt the repository for Apple Silicon compatibility
+- Study feature disentanglement and fairness generalization
 
-		|- fakeval.csv
-			|_ img_path,label,ismale,isasian,iswhite,isblack,intersec_label,spe_label
-				/path/to/cropped_images/imgxx.png, 1(fake), 1(male)/-1(not male), 1(asian)/-1(not asian), 1(black)/-1(not black), 1(white)/-1(not white), 0(male-asian)/1(male-white)/2(male-black)/3(male-others)/4(female-asian)/5(female-white)/6(female-black)/7(female-others), 1(Deepfakes)/2(Face2Face)/3(FaceSwap)/4(NeuralTextures)/5(FaceShifter)
-				...
+---
 
-		|- realval.csv
-			|_ img_path,label,ismale,isasian,iswhite,isblack,intersec_label
-				/path/to/cropped_images/imgxx.png, 0(real), 1(male)/-1(not male), 1(asian)/-1(not asian), 1(black)/-1(not black), 1(white)/-1(not white), 0(male-asian)/1(male-white)/2(male-black)/3(male-others)/4(female-asian)/5(female-white)/6(female-black)/7(female-others)
-				...
-		
-- Generate test.csv according to following format:
+# Key Concepts
 
-		|- test.csv
-			|- img_path,label,ismale,isasian,iswhite,isblack,intersec_label
-				/path/to/cropped_images/imgxx.png, 1(fake)/0(real), 1(male)/-1(not male), 1(asian)/-1(not asian), 1(black)/-1(not black), 1(white)/-1(not white), 0(male-asian)/1(male-white)/2(male-black)/3(male-others)/4(female-asian)/5(female-white)/6(female-black)/7(female-others)
-				...
+The model focuses on:
 
-## 3. Load Pretrained Weights
-Before running the training code, make sure you load the pre-trained weights. We provide pre-trained weights under [`./training/pretrained`](./training/pretrained). You can also download *Xception* model trained on ImageNet (through this [link](http://data.lip6.fr/cadene/pretrainedmodels/xception-b5690688.pth)) or use your own pretrained *Xception*.
+- Deepfake Detection
+- Fairness Generalization
+- Feature Disentanglement
+- Demographic Bias Reduction
+- Multi-Encoder Representation Learning
 
-## 4. Train
-To run the training code, you should first go to the [`./training/`](./training/) folder, then you can train our detector with loss flattening strategy by running [`train.py`](training/train.py), or without loss flattening strategy by running [`train_noSAM.py`](training/train_noSAM.py):
+---
 
-```
-cd training
+# Architecture Summary
 
-python train.py 
-```
+The proposed framework uses multiple Xception-based encoders to separately learn:
 
-You can adjust the parameters in [`train.py`](training/train.py) to specify the parameters, *e.g.,* training dataset, batchsize, learnig rate, *etc*.
+| Encoder | Purpose |
+|---|---|
+| Encoder F | Forgery feature extraction |
+| Encoder C | Facial/content feature extraction |
+| Encoder Fair | Fairness/demographic feature extraction |
 
-`--lr`: learning rate, default is 0.0005. 
+The architecture also includes:
 
-`--gpu`: gpu ids for training.
+- Conditional GAN modules
+- AdaIN-based feature manipulation
+- Multiple classification heads
+- Fairness-aware loss functions
+- Fused prediction mechanism
 
-` --fake_datapath`: /path/to/faketrain.csv, fakeval.csv
+---
 
-` --real_datapath`: /path/to/realtrain.csv, realval.csv
+# Why Xception?
 
-`--batchsize`: batch size, default is 16.
+Xception is used as the backbone architecture because it efficiently captures:
 
-`--dataname`: training dataset name: ff++.
+- Fine-grained textures
+- Manipulation artifacts
+- Compression inconsistencies
+- Facial forgery patterns
 
-`--model`: detector name: fair_df_detector.
+The model uses depthwise separable convolutions for efficient feature extraction.
 
-## 5. Test
-* For model testing, we provide a python file to test our model by running `python test.py`. 
+---
 
-	`--test_path`: /path/to/test.csv 
+# Processing Pipeline
 
-	`--test_data_name`: testing dataset name: ff++, celebdf, dfd, dfdc.
+The inference pipeline follows these stages:
 
-	`--inter_attribute`: intersectional group names divided by '-': male,asian-male,white-male,black-male,others-nonmale,asian-nonmale,white-nonmale,black-nonmale,others 
+1. Image Loading
+2. Image Preprocessing
+3. Feature Extraction using Xception Encoders
+4. Feature Disentanglement
+5. Fairness-aware Representation Learning
+6. Forward Propagation
+7. Fused Classification
+8. Prediction Generation
 
-	`--single_attribute`: single attribute name divided by '-': male-nonmale-asian-white-black-others 
+---
 
-	`--checkpoints`: /path/to/saved/model.pth 
+# What Was Implemented in This Project
 
-	`--savepath`: /where/to/save/predictions.npy(labels.npy)/results/ 
+The following tasks were successfully completed:
 
-	`--model_structure`: detector name: fair_df_detector.
+- Repository setup and configuration
+- PyTorch environment setup
+- Apple Silicon compatibility adaptation
+- CUDA-specific code patching
+- Device-agnostic tensor handling
+- Checkpoint loading stabilization
+- Dataset loading fixes
+- Prediction output improvements
+- Custom demo dataset creation
+- End-to-end inference pipeline execution
 
-	`--batch_size`: testing batch size: default is 32.
+---
 
-* After testing, for metric calculation, we provide `python fairness_metrics.py` to print all the metrics. To be noted that before run metrics.py, adjust the input to the path of your predictions(labels).npy files, which is the `--savepath` in the above setting.
+# Apple Silicon Compatibility Fixes
 
-#### 📝 Note
-Change `--inter_attribute` and `--single_attribute` for different testing dataset:
+The original repository was designed primarily for NVIDIA CUDA systems.
 
-```
-### ff++, dfdc
---inter_attribute male,asian-male,white-male,black-male,others-nonmale,asian-nonmale,white-nonmale,black-nonmale,others \
---single_attribute male-nonmale-asian-white-black-others \
+The following modifications were made to successfully execute the project on Apple Silicon (M4):
 
-### celebdf, dfd
---inter_attribute male,white-male,black-male,others-nonmale,white-nonmale,black-nonmale,others \
---single_attribute male-nonmale-white-black-others \
-```
+- Removed CUDA-only tensor assumptions
+- Patched checkpoint loading with device-aware mapping
+- Added CPU/MPS-compatible tensor handling
+- Fixed file saving path issues
+- Stabilized inference execution
+- Added readable prediction logs
 
-## 📦 Provided Backbones
-|                  | File name                               | Paper                                                                                                                                                                                                                                                                                                                                                         |
-|------------------|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Xception          | [xception.py](./training/networks/xception.py)         | [Xception: Deep learning with depthwise separable convolutions](https://openaccess.thecvf.com/content_cvpr_2017/html/Chollet_Xception_Deep_Learning_CVPR_2017_paper.html) |
-| ResNet50          | [resnet50.py](training/networks/resnet50.py)       | [Deep Residual Learning for Image Recognition](https://openaccess.thecvf.com/content_cvpr_2016/html/He_Deep_Residual_Learning_CVPR_2016_paper.html)                                                                                                                                                                                                                                                                                              |
-| EfficientNet-B3      | [efficientnetb3.py](./training/networks/efficientnetb3.py) | [Efficientnet: Rethinking model scaling for convolutional neural networks](http://proceedings.mlr.press/v97/tan19a.html)                                                                                                                                                                                                                  |
-| EfficientNet-B4      | [efficientnetb4.py](./training/networks/efficientnetb4.py) | [Efficientnet: Rethinking model scaling for convolutional neural networks](http://proceedings.mlr.press/v97/tan19a.html) 
+---
 
-## Citation
-Please kindly consider citing our papers in your publications. 
+# Example Inference Output
+
+The model successfully generated prediction outputs including:
+
+- Image path
+- Ground truth label
+- Prediction confidence
+- Predicted class
+
+Example:
+
 ```bash
-@inproceedings{Li2024preserving,
-    title={Preserving Fairness Generalization in Deepfake Detection},
-    author={Li Lin, Xinan He, Yan Ju, Xin Wang, Feng Ding, Shu Hu},
-    booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    year={2024},
-}
+Image: ../demo_data/images/fake_0.jpg
+Ground Truth: Fake
+Fake Confidence: -0.0277
+Predicted Class: Real
 ```
+
+---
+
+# Technologies Used
+
+- Python
+- PyTorch
+- torchvision
+- OpenCV
+- albumentations
+- timm
+- segmentation-models-pytorch
+
+---
+
+# Repository Structure
+
+```bash
+training/
+│
+├── detectors/
+├── dataset/
+├── networks/
+├── loss/
+├── pretrained/
+├── train.py
+├── test.py
+```
+
+---
+
+# Running the Inference Pipeline
+
+```bash
+python test.py \
+--test_path ../demo_data/test.csv \
+--savepath ../demo_results \
+--batch_size 1 \
+--inter_attribute male,white \
+--single_attribute male-nonmale
+```
+
+---
+
+# Challenges Faced
+
+- CUDA-specific implementation assumptions
+- Apple Silicon compatibility issues
+- Missing trained fairness detector checkpoints
+- Dataset subgroup filtering problems
+- File path handling issues
+
+---
+
+# Learning Outcomes
+
+This project helped in understanding:
+
+- Deepfake forensic analysis
+- Fairness-aware AI systems
+- Xception architecture
+- PyTorch-based research implementations
+- Feature disentanglement
+- Inference pipeline execution
+- Research repository debugging and stabilization
+
+---
+
+# Future Improvements
+
+Possible improvements include:
+
+- Real-time webcam deepfake detection
+- Transformer-based backbones
+- Explainable AI visualization (Grad-CAM)
+- Multimodal detection using audio + video
+- Lightweight deployment for edge devices
+- Better fairness-aware optimization strategies
+
+---
+
+# Important Note
+
+The repository provides pretrained Xception backbone weights but does not include the final trained fairness detector checkpoint.
+
+The current implementation successfully executes the complete inference pipeline using pretrained backbone initialization.
+
+---
+
+# References
+
+1. Li Lin, Xinan He, Yan Ju, Xin Wang, Feng Ding, Shu Hu  
+   **“Preserving Fairness Generalization in Deepfake Detection”**  
+   CVPR 2024
+
+2. François Chollet  
+   **“Xception: Deep Learning with Depthwise Separable Convolutions”**  
+   CVPR 2017
+
+3. Official Repository:  
+   https://github.com/Purdue-M2/Fairness-Generalization
